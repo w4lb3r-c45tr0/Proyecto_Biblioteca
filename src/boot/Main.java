@@ -2,7 +2,7 @@ package boot;
  
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
-import vista.PantallaBienvenida;
+import ui.PantallaBienvenida;
  
 public class Main {
  
@@ -15,3 +15,4 @@ public class Main {
         });
     }
 }
+ 
