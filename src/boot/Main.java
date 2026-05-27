@@ -1,4 +1,4 @@
-package vista;
+package boot;
 
 import modelo.Docente;
 import modelo.Estudiante;
