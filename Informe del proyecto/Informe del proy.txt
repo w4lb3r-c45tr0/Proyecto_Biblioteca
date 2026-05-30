@@ -1,0 +1,368 @@
+================================================================================
+                    UNIVERSIDAD MARIANO GÁLVEZ
+                         Programación I
+              INFORME DE PROYECTO INTEGRADOR
+                     Biblioteca POO 2.0
+           Sistema de Gestión de Biblioteca Universitaria
+================================================================================
+ 
+Integrantes:   Jery Alexander Barrientos Peraza
+               Jose Julian Osorio Oliva
+               Walber Elián Castro Sandoval
+ 
+Curso:         Programación I — 2025
+Tecnología:    Java SE — Swing — Eclipse IDE — JDK 17+
+Persistencia:  Archivos CSV — carpeta datos/
+ 
+================================================================================
+  1. INTRODUCCIÓN
+================================================================================
+ 
+El presente informe documenta el desarrollo del proyecto Biblioteca POO 2.0,
+una aplicación de escritorio desarrollada en Java con interfaz gráfica en Swing.
+El proyecto fue realizado como proyecto integrador del curso de Programación I
+y tiene como objetivo demostrar la aplicación práctica de los conceptos de
+Programación Orientada a Objetos en un sistema funcional.
+ 
+El sistema permite gestionar una biblioteca universitaria básica: registrar
+materiales (libros y revistas), registrar usuarios (estudiantes y docentes),
+realizar préstamos y devoluciones, y mantener todos los datos en archivos CSV
+para que la información persista entre sesiones.
+ 
+================================================================================
+  2. OBJETIVOS
+================================================================================
+ 
+2.1 Objetivo General
+--------------------
+Desarrollar una aplicación de escritorio funcional que permita administrar
+una biblioteca básica mediante una interfaz gráfica en Swing, aplicando
+correctamente encapsulamiento, herencia, polimorfismo, clases abstractas,
+validaciones de negocio y persistencia de datos.
+ 
+2.2 Objetivos Específicos
+--------------------------
+- Aplicar herencia y clases abstractas para modelar materiales y usuarios.
+- Implementar polimorfismo para manejar distintos tipos con comportamientos
+  diferentes.
+- Desarrollar una interfaz gráfica con Java Swing intuitiva y funcional.
+- Implementar persistencia mediante archivos CSV con guardado automático.
+- Aplicar validaciones que impidan operaciones incorrectas en el sistema.
+- Proteger operaciones sensibles de eliminación con contraseña de administrador.
+ 
+================================================================================
+  3. DESCRIPCIÓN DEL SISTEMA
+================================================================================
+ 
+Biblioteca POO 2.0 simula la gestión de una biblioteca universitaria. Permite
+registrar libros y revistas, así como estudiantes y docentes con características
+y límites de préstamo distintos. La interfaz principal incluye un panel de
+control con formulario de transacciones, botones organizados en dos filas y una
+terminal que registra las operaciones en tiempo real.
+ 
+3.1 Funcionalidades Principales
+---------------------------------
+- Registrar libros y revistas con código, título, año, stock y datos adicionales
+  (autor o número de edición).
+- Registrar usuarios tipo Estudiante (carnet de 3 dígitos) y Docente
+  (carnet con formato D + números).
+- Realizar préstamos con validación de disponibilidad y límites por usuario.
+- Realizar devoluciones que restauran el stock del material.
+- Ver inventario completo con el stock actual de cada material.
+- Ver préstamos activos del sistema.
+- Ver usuarios registrados separados por tipo (Estudiantes y Docentes).
+- Eliminar materiales y usuarios con protección por contraseña de administrador.
+- Persistencia automática tras cada operación y al cerrar la ventana.
+ 
+================================================================================
+  4. ESTRUCTURA DEL PROYECTO
+================================================================================
+ 
+El proyecto está organizado en cinco paquetes, siguiendo el principio de
+separación de responsabilidades. Ninguna capa accede directamente a una
+capa superior.
+ 
+src/
+├── boot/
+│   └── Main.java                  <- punto de entrada de la aplicación
+├── modelo/
+│   ├── Material.java              <- clase abstracta base de materiales
+│   ├── Libro.java                 <- hereda de Material (7 días de préstamo)
+│   ├── Revista.java               <- hereda de Material (3 días de préstamo)
+│   ├── Usuario.java               <- clase abstracta base de usuarios
+│   ├── Estudiante.java            <- hereda de Usuario (máx. 3 préstamos)
+│   ├── Docente.java               <- hereda de Usuario (máx. 5 préstamos)
+│   └── Prestamo.java              <- relación usuario-material con fecha
+├── servicios/
+│   └── Biblioteca.java            <- lógica de negocio central
+├── persistencia/
+│   └── GestorDatos.java           <- lectura y escritura de archivos CSV
+└── vista/
+    ├── PantallaBienvenida.java    <- splash screen animado
+    ├── VentanaBiblioteca.java     <- ventana principal del sistema
+    ├── VentanaInventario.java     <- catálogo de materiales
+    ├── VentanaVerPrestamos.java   <- préstamos activos
+    └── VentanaVerUsuarios.java    <- usuarios separados por tipo
+ 
+datos/                             <- generado automáticamente al ejecutar
+    materiales.csv
+    usuarios.csv
+    prestamos.csv
+ 
+4.1 Descripción de Paquetes
+-----------------------------
+ 
+  Paquete        Clase principal              Responsabilidad
+  -----------    -------------------------    ------------------------------------
+  boot           Main.java                    Punto de entrada. Lanza la GUI.
+  modelo         Material, Usuario,           Entidades del dominio. POO puro:
+                 Prestamo, etc.               herencia, abstracción,
+                                              encapsulamiento.
+  servicios      Biblioteca.java              Lógica de negocio. Gestiona las
+                                              tres listas y valida operaciones.
+  persistencia   GestorDatos.java             Guarda y carga datos en CSV.
+  vista          VentanaBiblioteca.java       Interfaz gráfica Swing. No
+                 y más                        contiene lógica de negocio.
+ 
+================================================================================
+  5. CONCEPTOS DE POO APLICADOS
+================================================================================
+ 
+5.1 Clases Abstractas y Herencia
+----------------------------------
+El proyecto implementa dos jerarquías de herencia. Material y Usuario son
+clases abstractas que nunca se instancian directamente — definen métodos
+abstractos que obligan a cada subclase a implementar su propio comportamiento:
+ 
+    // Material.java — clase abstracta
+    public abstract class Material {
+        private int copiasDisponibles;
+ 
+        public abstract int diasPrestamoMaximo(); // Libro=7, Revista=3
+ 
+        public boolean estaDisponible() { return copiasDisponibles > 0; }
+        public void prestar()           { copiasDisponibles--; }
+        public void devolver()          { copiasDisponibles++; }
+    }
+ 
+    // Usuario.java — clase abstracta
+    public abstract class Usuario {
+        public abstract int maxPrestamos(); // Estudiante=3, Docente=5
+    }
+ 
+5.2 Polimorfismo
+-----------------
+Biblioteca trabaja con el tipo Material sin saber si es Libro o Revista.
+El método prestarMaterial() llama a material.estaDisponible() y
+material.prestar() y ambos funcionan correctamente para cualquier subclase.
+Lo mismo ocurre con usuario.maxPrestamos():
+ 
+    // Biblioteca.java — polimorfismo en acción
+    if (!material.estaDisponible()) return "Sin copias disponibles";
+    if (prestamosActivosUsuario(usuario) >= usuario.maxPrestamos())
+        return "Límite de préstamos alcanzado";
+    material.prestar(); // ejecuta correctamente para Libro o Revista
+ 
+5.3 Encapsulamiento
+--------------------
+Las listas de Biblioteca (materiales, usuarios, préstamos) son privadas.
+La interfaz gráfica nunca las toca directamente — solo accede a través de
+métodos públicos como registrarMaterial(), buscarMaterial() o getMateriales().
+ 
+5.4 Sobrecarga de Constructores
+---------------------------------
+La clase Prestamo usa dos constructores: uno para préstamos nuevos
+(asigna LocalDate.now() automáticamente) y otro para reconstruir préstamos
+desde el CSV con la fecha y estado exactos guardados:
+ 
+    // Constructor para préstamo nuevo
+    public Prestamo(Material material, Usuario usuario) {
+        this.fechaPrestamo = LocalDate.now();
+        this.activo = true;
+    }
+ 
+    // Constructor para cargar desde CSV (sobrecarga)
+    public Prestamo(Material mat, Usuario usr, LocalDate fecha, boolean activo) {
+        this.fechaPrestamo = fecha;   // restaura fecha exacta
+        this.activo = activo;         // restaura estado exacto
+    }
+ 
+================================================================================
+  6. PERSISTENCIA DE DATOS
+================================================================================
+ 
+La clase GestorDatos guarda y carga los datos en tres archivos CSV dentro de
+la carpeta datos/. Se usó el carácter | como separador para evitar conflictos
+con comas en títulos o nombres.
+ 
+Formato de los archivos:
+ 
+    // materiales.csv
+    tipo|codigo|titulo|anio|totalCopias|copiasDisponibles|extra
+    LIBRO|L1|Java POO|2020|3|2|Juan Perez
+    REVISTA|R1|Tecnología Hoy|2024|2|1|5
+ 
+    // usuarios.csv
+    tipo|carnet|nombre
+    ESTUDIANTE|201|Jery
+    DOCENTE|D01|Maria
+ 
+    // prestamos.csv
+    codigoMaterial|carnetUsuario|fechaPrestamo|activo
+    L1|201|2025-05-10|true
+ 
+El guardado se dispara automáticamente en los siguientes momentos:
+ 
+  Evento                        Método que lo ejecuta
+  ---------------------------   -------------------------------------------
+  Préstamo realizado            accionPrestar()
+  Devolución realizada          accionDevolver()
+  Nuevo material agregado       accionAgregarMaterial()
+  Nuevo usuario agregado        accionAgregarUsuario()
+  Eliminación (admin)           eliminarMaterial() / eliminarUsuario()
+  Cierre de ventana             WindowListener.windowClosing()
+ 
+================================================================================
+  7. VALIDACIONES DEL SISTEMA
+================================================================================
+ 
+  Validación                      Dónde se aplica                Mensaje
+  ----------------------------    --------------------------     -----------------------
+  Campos vacíos                   Formularios de agregar         Todos los campos son
+                                                                 obligatorios.
+  Código/carnet duplicado         buscarMaterial() /             Ya existe un material
+                                  buscarUsuario()                con ese código.
+  Carnet Estudiante: 3 dígitos    Regex \d{3}                    Formato: exactamente
+                                                                 3 dígitos (ej: 203).
+  Carnet Docente: D + números     Regex D\d+                     Formato: D seguido de
+                                                                 números (ej: D03).
+  Año entre 1900 y 2026           Formulario agregar material    El año debe estar entre
+                                                                 1900 y 2026.
+  Stock mayor a 0                 Formulario agregar material    El stock debe ser
+                                                                 mayor a 0.
+  Material sin copias             Biblioteca.prestarMaterial()   Sin copias disponibles.
+  Usuario no existe               Biblioteca.prestarMaterial()   Usuario no encontrado.
+  Límite de préstamos             prestamosActivosUsuario()      Límite de préstamos
+                                                                 alcanzado.
+  Eliminar con préstamo activo    eliminarMaterial/Usuario()     No se puede eliminar:
+                                                                 tiene préstamos activos.
+  Contraseña admin incorrecta     accionAdmin()                  Contraseña incorrecta.
+                                                                 Acceso denegado.
+ 
+================================================================================
+  8. PROBLEMAS Y SOLUCIONES
+================================================================================
+ 
+Durante el desarrollo se presentaron varios desafíos técnicos que el equipo
+tuvo que resolver. A continuación se describen los más relevantes:
+ 
+------------------------------------------------------------------------
+  Conectar las ventanas secundarias con la misma instancia de Biblioteca
+------------------------------------------------------------------------
+Al desarrollar VentanaInventario, VentanaVerUsuarios y VentanaVerPrestamos,
+cada ventana creaba su propia instancia de Biblioteca por lo que no veían
+los datos de la ventana principal. La solución fue pasar la instancia
+existente de Biblioteca como parámetro al constructor de cada ventana
+secundaria, de manera que todas comparten la misma lista de datos en memoria.
+ 
+------------------------------------------------------------------------
+  El stock no se restauraba correctamente al cargar desde CSV
+------------------------------------------------------------------------
+Al cargar materiales.csv, todos los objetos iniciaban con copiasDisponibles
+igual al total, ignorando el estado real. La solución fue leer la columna
+copiasDisponibles del archivo y llamar al método prestar() tantas veces como
+la diferencia entre total y disponibles, restaurando el stock exacto antes
+de cargar los préstamos.
+ 
+------------------------------------------------------------------------
+  Conflicto en el repositorio al hacer git push (non-fast-forward)
+------------------------------------------------------------------------
+Al intentar subir cambios, el push fue rechazado porque otro integrante
+había modificado el mismo archivo desde GitHub. La solución fue ejecutar
+git pull origin main --rebase, resolver el conflicto en VentanaBiblioteca.java
+usando git checkout --ours, marcar el archivo como resuelto con git add,
+finalizar el rebase con git rebase --continue y luego hacer el push
+exitosamente.
+ 
+------------------------------------------------------------------------
+  Reconstrucción de préstamos al cargar desde archivo CSV
+------------------------------------------------------------------------
+Al cargar prestamos.csv era necesario reconstruir los objetos Prestamo con
+referencias a los objetos Material y Usuario ya existentes en memoria, no
+crear objetos nuevos. La solución fue cargar primero materiales y usuarios,
+luego buscar cada uno por código y carnet dentro de las listas ya cargadas,
+y pasar esos objetos al segundo constructor de Prestamo.
+ 
+------------------------------------------------------------------------
+  Archivos CSV generando conflictos en Git entre integrantes
+------------------------------------------------------------------------
+Cuando varios integrantes hacían push, los archivos de la carpeta datos/
+generaban conflictos porque cada quien tenía datos de prueba distintos.
+La solución fue agregar datos/ al archivo .gitignore del repositorio, de
+modo que cada integrante genera su propia carpeta localmente y Git no la
+rastrea.
+ 
+------------------------------------------------------------------------
+  Warnings amarillos en Eclipse por imports no utilizados
+------------------------------------------------------------------------
+Eclipse mostraba advertencias en varias clases por imports declarados que
+no se usaban directamente. Por ejemplo, import modelo.Usuario en
+VentanaBiblioteca.java generaba warning porque en ese archivo solo se usan
+Docente y Estudiante como tipos. La solución fue eliminar los imports
+innecesarios.
+ 
+================================================================================
+  9. DIVISIÓN DEL TRABAJO
+================================================================================
+ 
+  Semana    Integrante                        Responsabilidad
+  --------  --------------------------------  ---------------------------------
+  Semana 1  Jose Julian Osorio Oliva          Clases del paquete modelo y
+                                              lógica de negocio en
+                                              Biblioteca.java.
+ 
+            Walber Elián Castro Sandoval      Ventana principal, splash screen
+                                              y diseño visual de la interfaz.
+ 
+            Jery Alexander Barrientos Peraza  Conexión entre lógica y UI,
+                                              organización del proyecto y
+                                              documentación.
+ 
+  Semana 2  Jose Julian Osorio Oliva          Implementación de GestorDatos.java
+                                              y persistencia CSV.
+ 
+            Jery Alexander Barrientos Peraza  Ventanas secundarias: inventario,
+                                              préstamos activos y ver usuarios.
+ 
+            Walber Elián Castro Sandoval      Gestión del repositorio Git:
+                                              ramas, commits y resolución de
+                                              conflictos.
+ 
+================================================================================
+  10. CONCLUSIONES
+================================================================================
+ 
+El desarrollo del proyecto Biblioteca POO 2.0 permitió aplicar de forma
+práctica y completa los conceptos de Programación Orientada a Objetos
+estudiados durante el curso. La implementación de clases abstractas, herencia,
+polimorfismo y encapsulamiento no fue solo teórica — resolvió problemas reales
+de diseño: el polimorfismo permitió tratar libros y revistas de manera uniforme,
+la herencia evitó duplicar código entre Estudiante y Docente, y el
+encapsulamiento protegió el estado interno del sistema.
+ 
+La persistencia con archivos CSV demostró que es posible mantener datos entre
+sesiones sin una base de datos, usando únicamente las herramientas del lenguaje.
+El uso de Git, aunque generó algunos conflictos durante el desarrollo, enseñó
+al equipo un flujo de trabajo profesional con ramas, commits descriptivos y
+resolución de conflictos.
+ 
+Los objetivos del proyecto fueron cumplidos satisfactoriamente. El proceso de
+desarrollo en equipo, con sus dificultades y soluciones, fue una experiencia
+formativa que va más allá de lo académico.
+ 
+================================================================================
+  Universidad Mariano Gálvez  •  Programación I  •  2025
+  Jery Alexander Barrientos Peraza  |  Jose Julian Osorio Oliva
+  Walber Elián Castro Sandoval
+================================================================================
+ 
